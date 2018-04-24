@@ -1,0 +1,20 @@
+{
+  "name": "express-intro",
+  "version": "1.0.0",
+  "description": "npm express stuff",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "express",
+    "ejs"
+  ],
+  "author": "Me",
+  "license": "MIT ",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "ejs": "^2.5.9",
+    "express": "^4.16.3"
+  }
+}
