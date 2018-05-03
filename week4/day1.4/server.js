@@ -1,12 +1,41 @@
 const mongoose = require('mongoose');
 const express = require('express');
+const parser = require('body-parser');
+const path = require('path');
 const port = process.env.PORT || 8000;
 const app = express();
-mongoose.connect('mongodb://localhost/books');
+mongoose.connect('mongodb://localhost/booksz');
 mongoose.connection.on('connected', () => console.log('Connected to MongoDB'));
+
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+app.use(parser.urlencoded({ extended: true }));
+
+
 //
 const { Schema } = mongoose;
 // const Schema = mongoose.Schema;
+
+const authorSchema = new Schema({
+  name: {
+    type: String,
+    required: true,
+  },
+  isAlive: {
+    type: Boolean,
+    default: true,
+  },
+  books: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: 'Book'
+    }
+  ]
+},
+{
+  timestamps: true,
+});
 
 const bookSchema = new Schema({
   title: {
@@ -16,8 +45,9 @@ const bookSchema = new Schema({
     minlength: [3, 'Book title length must be at least 3 chars'],
   },
   author: {
-    type: String,
-    default: 'Unknown',
+    type: Schema.Types.ObjectId,
+    required: true,
+    ref: 'Author',
   },
   pages: {
     type: Number,
@@ -35,13 +65,15 @@ const bookSchema = new Schema({
 // collection => books
 mongoose.model('Book', bookSchema);
 const Book = mongoose.model('Book');
+// collection => authors
+const Author = mongoose.model('Author', authorSchema);
 
 // console.log(Book);
 
-const book = new Book({
-  title: 'And',
-  pages: 7
-});
+// const book = new Book({
+//   title: 'And',
+//   pages: 7
+// });
 //
 // book.save()
 //   .then(book => {
@@ -69,19 +101,73 @@ const book = new Book({
 //   });
 
   app.get('/', function(request, response) {
-      // Book.find({}, function(error, books) {
-      //   if (error) {
-      //     throw error
-      //   }
-      //
-      //   response.send(books);
-      // });
+      response.render('index');
+  });
 
-      Book.find({})
+  app.get('/authors', function(request, response) {
+    Author.find({})
+      .populate('books')
+      .then(authors => {
+        response.render('authors/index', { authors });
+      })
+      .catch(console.log);
+  });
+
+  app.get('/authors/new', function(request, response) {
+    response.render('authors/new');
+  });
+
+  app.post('/authors', function(request, response) {
+    console.log(request.body);
+
+    Author.create(request.body)
+      .then(author => {
+        response.redirect('/authors');
+      })
+      .catch(console.log);
+  });
+
+
+
+  // book routes
+
+  app.get('/books', function(request, response) {
+    Book.find({})
+      .populate('author')
       .then(books => {
-        console.log(books);
+        response.render('books/index', { books });
+      })
+      .catch(console.log);
+  });
 
-        response.send(books);
+  app.get('/books/new', function(request, response) {
+    Author.find({})
+      .then(authors => {
+        response.render('books/new', { authors });
+      })
+      .catch(console.log);
+  });
+
+
+  app.post('/books', function(request, response) {
+    console.log(request.body);
+
+
+    Book.create(request.body)
+      .then(book => {
+        console.log('created book', book);
+        return Author.findById(book.author)
+          .then(author => {
+            console.log('author', author);
+            author.books.push(book);
+
+            return author.save();
+          })
+          .then(() => {
+            console.log('redirecting');
+            response.redirect('/books');
+          });
+
       })
       .catch(console.log);
   });
